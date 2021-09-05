@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // Main logic function
@@ -16,7 +17,7 @@ func Uniq(source *os.File, destination *os.File, flags map[string]int) {
 	counter := 0
 
 	for scanner.Scan() {
-		if scanner.Text() != prev_word {
+		if uniq_ne(scanner.Text(), prev_word, flags) {
 			if flags["c"] == 0 && flags["d"] == 0 && flags["u"] == 0 {
 				// standart case (pre-printing)
 				write_uniq_msg(writer, []byte(scanner.Text()), 0)
@@ -34,6 +35,55 @@ func Uniq(source *os.File, destination *os.File, flags map[string]int) {
 
 	// -c, -d, -u => delayed print
 	post_write(writer, flags, prev_word, counter)
+}
+
+// returns true if lines are not equal considering -i, -f, -s flags
+func uniq_ne(str1 string, str2 string, flags map[string]int) bool {
+	// runes1 := []rune(str1)
+	// runes2 := []rune(str2)
+	// fmt.Print("before: |", str1, "|", str2)
+
+	if flags["f"] != 0 {
+		words1 := strings.Fields(str1)
+		if len(words1) == 0 {
+			str1 = ""
+		} else {
+			// skip all symbols till [f] fields
+			invisible_word1 := words1[flags["f"]-1]
+			str1 = string(str1[strings.Index(str1, invisible_word1)+len(invisible_word1):])
+		}
+		words2 := strings.Fields(str2)
+		if len(words2) == 0 {
+			str2 = ""
+		} else {
+			invisible_word2 := (strings.Fields(str2))[flags["f"]-1]
+			str2 = string(str2[strings.Index(str2, invisible_word2)+len(invisible_word2):])
+		}
+	}
+
+	// cut off [s] symbols
+	// TODO: count in UNIODE symbols
+	if flags["s"] != 0 {
+		if flags["s"] >= len(str1) {
+			str1 = ""
+		} else {
+			str1 = string(str1[flags["s"]:])
+		}
+		if flags["s"] >= len(str2) {
+			str2 = ""
+		} else {
+			str2 = string(str2[flags["s"]:])
+		}
+	}
+
+	if flags["i"] == 1 {
+		str1 = strings.ToLower(str1)
+		str2 = strings.ToLower(str2)
+	}
+
+	// fmt.Println(" => after: |", str1, "|", str2)
+
+	return str1 != str2
 }
 
 // prints saved word if -c or -u or -d are set
@@ -90,6 +140,14 @@ func main() {
 	f_flg := flag.Int("f", 0, "\tavoid comparing the first N fields")
 	s_flg := flag.Int("s", 0, "\tavoid comparing the first N characters")
 	flag.Parse()
+
+	// safety
+	if *f_flg < 0 {
+		*f_flg = 0
+	}
+	if *s_flg < 0 {
+		*s_flg = 0
+	}
 
 	flags := map[string]int{
 		"c": conv_b2i[*c_flg],
