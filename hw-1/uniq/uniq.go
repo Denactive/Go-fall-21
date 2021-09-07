@@ -1,9 +1,7 @@
-package main
+package uniq
 
 import (
 	"bufio"
-	"flag"
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -35,14 +33,13 @@ func Uniq(source *os.File, destination *os.File, flags map[string]int) {
 
 	// -c, -d, -u => delayed print
 	post_write(writer, flags, prev_word, counter)
+
+	writer.Write([]byte(NEWLINE_SEPARATOR))
+	writer.Flush()
 }
 
 // returns true if lines are not equal considering -i, -f, -s flags
 func uniq_ne(str1 string, str2 string, flags map[string]int) bool {
-	// runes1 := []rune(str1)
-	// runes2 := []rune(str2)
-	// fmt.Print("before: |", str1, "|", str2)
-
 	if flags["f"] != 0 {
 		words1 := strings.Fields(str1)
 		if len(words1) == 0 {
@@ -62,17 +59,16 @@ func uniq_ne(str1 string, str2 string, flags map[string]int) bool {
 	}
 
 	// cut off [s] symbols
-	// TODO: count in UNIODE symbols
 	if flags["s"] != 0 {
 		if flags["s"] >= len(str1) {
 			str1 = ""
 		} else {
-			str1 = string(str1[flags["s"]:])
+			str1 = string(([]rune(str1))[flags["s"]:])
 		}
 		if flags["s"] >= len(str2) {
 			str2 = ""
 		} else {
-			str2 = string(str2[flags["s"]:])
+			str2 = string(([]rune(str2))[flags["s"]:])
 		}
 	}
 
@@ -102,7 +98,7 @@ func uniq_flag_process(flags map[string]int, counter int) bool {
 	// d - print if there is at least 1 repeat
 	// u - print if counter is 1
 	// in cases -du and -ud no print
-	if !(flags["d"] == 1 && flags["u"] == 1) && (flags["d"] == 1 && counter > 1 || flags["u"] == 1 && counter == 1 || flags["c"] == 1) {
+	if !(flags["d"] == 1 && flags["u"] == 1) && (flags["d"] == 1 && counter > 1 || flags["u"] == 1 && counter == 1 || flags["c"] == 1 && flags["d"] == 0 && flags["u"] == 0) {
 		return true
 	}
 	return false
@@ -126,63 +122,4 @@ func create_uniq_msg(str []byte, counter int) []byte {
 		msg = append([]byte("\t"+strconv.Itoa(counter)+" "), msg...)
 	}
 	return msg
-}
-
-// bool to int convertation
-var conv_b2i = map[bool]int{false: 0, true: 1}
-
-func main() {
-	// Flag proccessing
-	c_flg := flag.Bool("c", false, "\tprefix lines by the number of occurrences")
-	d_flg := flag.Bool("d", false, "\tonly print duplicate lines, one for each group")
-	u_flg := flag.Bool("u", false, "\tonly print unique lines")
-	i_flg := flag.Bool("i", false, "\tignore differences in case when comparing")
-	f_flg := flag.Int("f", 0, "\tavoid comparing the first N fields")
-	s_flg := flag.Int("s", 0, "\tavoid comparing the first N characters")
-	flag.Parse()
-
-	// safety
-	if *f_flg < 0 {
-		*f_flg = 0
-	}
-	if *s_flg < 0 {
-		*s_flg = 0
-	}
-
-	flags := map[string]int{
-		"c": conv_b2i[*c_flg],
-		"d": conv_b2i[*d_flg],
-		"u": conv_b2i[*u_flg],
-		"i": conv_b2i[*i_flg],
-		"f": *f_flg,
-		"s": *s_flg,
-	}
-
-	// Input/ Output files Arguments proccessing
-	source := os.Stdin
-	destination := os.Stdout
-	var err error
-
-	source_file := flag.Arg(0)
-	destination_file := flag.Arg(1)
-	fmt.Println("params: ", source_file, destination_file, flags)
-
-	if source_file != "" {
-		source, err = os.Open(source_file)
-		if err != nil {
-			panic(err)
-		}
-		defer source.Close()
-	}
-
-	if destination_file != "" {
-		// cross-platform file openning
-		destination, err = os.OpenFile(destination_file, os.O_WRONLY|os.O_CREATE, 666)
-		if err != nil {
-			panic(err)
-		}
-		defer destination.Close()
-	}
-
-	Uniq(source, destination, flags)
 }
