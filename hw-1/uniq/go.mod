@@ -1,3 +1,3 @@
-module tp-hw-1/hw-1/uniq
+module uniq
 
 go 1.16

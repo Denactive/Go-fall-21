@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"tp-hw-1/hw-1/uniq"
+	"uniq"
 )
 
 const root_cases = "test_cases"
@@ -61,7 +61,10 @@ func walking_test(path string, info os.FileInfo, err error) error {
 	// prepare. setting neccessaries
 	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
 	if err != nil {
-		return err
+		fmt.Println("[TEST FAIL]\t Problem with test test file " + path)
+		fmt.Println("[         ]\t", err)
+		// continue executing walkFunk
+		return nil
 	}
 	defer file.Close()
 
@@ -94,7 +97,10 @@ func walking_test(path string, info os.FileInfo, err error) error {
 	answer_filename := root_answ + strings.TrimPrefix(path, root_cases)
 	file_answ, err := os.OpenFile(answer_filename, os.O_RDONLY, 0666)
 	if err != nil {
-		return err
+		fmt.Println("[TEST FAIL]\t Problem with test answer file " + answer_filename)
+		fmt.Println("[         ]\t", err)
+		// continue executing walkFunk
+		return nil
 	}
 	defer file.Close()
 
@@ -124,6 +130,10 @@ func walking_test(path string, info os.FileInfo, err error) error {
 // tests
 func TestUniq(t *testing.T) {
 	if err := filepath.Walk(root_cases, walking_test); err != nil {
-		t.Fatal(err)
+		if strings.Contains(err.Error(), "test") {
+			t.Fail()
+		} else {
+			t.Fatal(err)
+		}
 	}
 }

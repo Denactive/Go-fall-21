@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"uniq"
 )
 
 // bool to int convertation
@@ -62,5 +63,5 @@ func main() {
 		defer destination.Close()
 	}
 
-	Uniq(source, destination, flags)
+	uniq.Uniq(source, destination, flags)
 }
