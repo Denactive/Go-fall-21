@@ -76,6 +76,21 @@ var exec_math_exp_testing_table []TestCase = []TestCase{
 	TestCase{"error test complicated 3", "(125-123*2)-11+", ""},
 }
 
+var prep_exp_testing_table []TestCase = []TestCase{
+	TestCase{"trim spaces", "    10    +     12       ", "10+12"},
+	TestCase{"trim tabs", "\t10\t+\t12\t", "10+12"},
+	TestCase{"trim '\\r'", "\r10\r+\r12\r", "10+12"},
+	TestCase{"trim '\\n\\r'", "\n\r10\n\r+\n\r12\n\r", "10+12"},
+	TestCase{"numbers", "0123456789", "0123456789"},
+	TestCase{"operations", "+--**///++++", "+--**///++++"},
+	TestCase{"brackets", "		(\t)\n)()()()((           )", "())()()()(()"},
+	TestCase{"dots", ".    .     .\t.\n.\n\r.", "......"},
+
+	TestCase{"error test letters", "qwertyuiopasdfghjklzxcvbnm", ""},
+	TestCase{"error test unsupported opearions", "+///-++++ * * * ^", ""},
+	TestCase{"error test letter in equation", "15 * 2 * (15-2.8) * 2^x", ""},
+}
+
 const EPS = 1.0e-6
 
 func TestExecMathExp(t *testing.T) {
@@ -94,7 +109,29 @@ func TestExecMathExp(t *testing.T) {
 				}
 				output, _ := strconv.ParseFloat(test_case.output, 64)
 				if math.Abs(res-output) > EPS {
-					t.Errorf("got %v, want %v", res, output)
+					t.Errorf("got %v, want %v", res, test_case.output)
+				}
+			}
+		})
+	}
+}
+
+func TestPrepareExp(t *testing.T) {
+	for _, test_case := range prep_exp_testing_table {
+		t.Run(test_case.name, func(t *testing.T) {
+			output, err := mathexecutor.PrepareExp(test_case.input)
+			if err != nil {
+				if strings.Contains(test_case.name, "error") {
+					return
+				} else {
+					t.Error(err)
+				}
+			} else {
+				if strings.Contains(test_case.name, "error") {
+					t.Error("need to raise an error")
+				}
+				if output != test_case.output {
+					t.Errorf("got %v, want %v", output, test_case.output)
 				}
 			}
 		})
