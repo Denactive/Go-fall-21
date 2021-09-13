@@ -1,12 +1,5 @@
 package main
 
-import (
-	"fmt"
-	"sync/atomic"
-	"testing"
-	"time"
-)
-
 /*
 	В чем его преимущество по сравнению с TestPipeline?
 	1. Он проверяет то, что все функции действительно выполнились
@@ -15,7 +8,7 @@ import (
 	возможно кому-то будет легче с ним
 	при правильной реализации ваш код конечно же должен его проходить
 */
-
+/*
 func TestByIlia(t *testing.T) {
 
 	var recieved uint32
@@ -55,3 +48,4 @@ func TestByIlia(t *testing.T) {
 		t.Errorf("f3 have not collected inputs, recieved = %d", recieved)
 	}
 }
+*/
