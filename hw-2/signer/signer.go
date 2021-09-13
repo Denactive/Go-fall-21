@@ -12,7 +12,7 @@ const single_hash_DEBUG = false
 const multi_hash_DEBUG = false
 const combine_results_DEBUG = false
 
-const single_hash_delay = 11 * time.Microsecond
+const single_hash_delay = 20 * time.Millisecond
 
 func ExecutePipeline(jobs ...job) {
 	wg := new(sync.WaitGroup)
@@ -30,7 +30,6 @@ func ExecutePipeline(jobs ...job) {
 			}
 
 			job_i(in, out)
-			time.Sleep(time.Second)
 			close(out)
 
 			if pipeline_DEBUG {
