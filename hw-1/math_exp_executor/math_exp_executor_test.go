@@ -14,7 +14,7 @@ type TestCase struct {
 	output string
 }
 
-var exec_math_exp_testing_table []TestCase = []TestCase{
+var execMathExpTestingTable []TestCase = []TestCase{
 	TestCase{"simple plus int", "10+12", "22"},
 	TestCase{"simple minus int", "10-12", "-2"},
 	TestCase{"simple multiplication int", "10*12", "120"},
@@ -76,7 +76,7 @@ var exec_math_exp_testing_table []TestCase = []TestCase{
 	TestCase{"error test complicated 3", "(125-123*2)-11+", ""},
 }
 
-var prep_exp_testing_table []TestCase = []TestCase{
+var prepExpTestingTable []TestCase = []TestCase{
 	TestCase{"trim spaces", "    10    +     12       ", "10+12"},
 	TestCase{"trim tabs", "\t10\t+\t12\t", "10+12"},
 	TestCase{"trim '\\r'", "\r10\r+\r12\r", "10+12"},
@@ -94,45 +94,41 @@ var prep_exp_testing_table []TestCase = []TestCase{
 const EPS = 1.0e-6
 
 func TestExecMathExp(t *testing.T) {
-	for _, test_case := range exec_math_exp_testing_table {
-		t.Run(test_case.name, func(t *testing.T) {
-			res, err := mathexecutor.ExecMathExp(test_case.input)
+	for _, testCase := range execMathExpTestingTable {
+		t.Run(testCase.name, func(t *testing.T) {
+			res, err := mathexecutor.ExecMathExp(testCase.input)
 			if err != nil {
-				if strings.Contains(test_case.name, "error") {
+				if strings.Contains(testCase.name, "error") {
 					return
-				} else {
-					t.Error(err)
 				}
-			} else {
-				if strings.Contains(test_case.name, "error") {
-					t.Error("need to raise an error")
-				}
-				output, _ := strconv.ParseFloat(test_case.output, 64)
-				if math.Abs(res-output) > EPS {
-					t.Errorf("got %v, want %v", res, test_case.output)
-				}
+				t.Error(err)
+			}
+			if strings.Contains(testCase.name, "error") {
+				t.Error("need to raise an error")
+			}
+			output, _ := strconv.ParseFloat(testCase.output, 64)
+			if math.Abs(res-output) > EPS {
+				t.Errorf("got %v, want %v", res, testCase.output)
 			}
 		})
 	}
 }
 
 func TestPrepareExp(t *testing.T) {
-	for _, test_case := range prep_exp_testing_table {
-		t.Run(test_case.name, func(t *testing.T) {
-			output, err := mathexecutor.PrepareExp(test_case.input)
+	for _, testCase := range prepExpTestingTable {
+		t.Run(testCase.name, func(t *testing.T) {
+			output, err := mathexecutor.PrepareExp(testCase.input)
 			if err != nil {
-				if strings.Contains(test_case.name, "error") {
+				if strings.Contains(testCase.name, "error") {
 					return
-				} else {
-					t.Error(err)
 				}
-			} else {
-				if strings.Contains(test_case.name, "error") {
-					t.Error("need to raise an error")
-				}
-				if output != test_case.output {
-					t.Errorf("got %v, want %v", output, test_case.output)
-				}
+				t.Error(err)
+			}
+			if strings.Contains(testCase.name, "error") {
+				t.Error("need to raise an error")
+			}
+			if output != testCase.output {
+				t.Errorf("got %v, want %v", output, testCase.output)
 			}
 		})
 	}

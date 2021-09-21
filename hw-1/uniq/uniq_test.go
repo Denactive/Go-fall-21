@@ -11,13 +11,13 @@ import (
 	"uniq"
 )
 
-const root_cases = "test_cases"
-const root_examples = "example_cases"
-const root_answ = "test_answers"
-const read_buffer_size = 128
+const rootCases = "test_cases"
+const rootExamples = "example_cases"
+const rootAnswers = "test_answers"
+const readBufferSize = 128
 
 // utility functions
-func empty_syms_splitter(sym rune) bool {
+func emptySymsSplitter(sym rune) bool {
 	// важно сохранить в исходной строке пробелы и табуляции
 	if sym == 0 || sym == 10 || sym == 13 {
 		return true
@@ -25,7 +25,7 @@ func empty_syms_splitter(sym rune) bool {
 	return false
 }
 
-func string_slice_eq(a, b []string) bool {
+func stringSliceEQ(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -38,11 +38,11 @@ func string_slice_eq(a, b []string) bool {
 }
 
 // test utilities
-func toggle_flags(filename string, flags map[string]int) {
-	flags_set := strings.TrimPrefix(strings.TrimSuffix(filename, ".txt"), "src_")
+func toggleFlags(filename string, flags map[string]int) {
+	flagsSet := strings.TrimPrefix(strings.TrimSuffix(filename, ".txt"), "src_")
 	for _, flag := range []string{"c", "d", "u", "i", "f", "s"} {
 		flags[flag] = 0
-		if strings.Contains(flags_set, flag) {
+		if strings.Contains(flagsSet, flag) {
 			flags[flag] = 1
 			// test exception: skip 2 runes here
 			if flag == "s" {
@@ -52,7 +52,7 @@ func toggle_flags(filename string, flags map[string]int) {
 	}
 }
 
-func walking_test(path string, info os.FileInfo, err error) error {
+func walkingTest(path string, info os.FileInfo, err error) error {
 	// escaping root directory
 	if info.IsDir() {
 		return nil
@@ -78,43 +78,43 @@ func walking_test(path string, info os.FileInfo, err error) error {
 	}
 
 	r, w, err := os.Pipe()
-	r_buffed := bufio.NewReader(r)
+	rBuffed := bufio.NewReader(r)
 
-	toggle_flags(info.Name(), flags)
+	toggleFlags(info.Name(), flags)
 	fmt.Println("Test running with params: from [", info.Name(), "] to [", "stdout ]", flags)
 
 	// act. function call
 	uniq.Uniq(file, w, flags)
 
 	// checking results. reading output from stdout
-	output := make([]byte, read_buffer_size)
-	_, err = r_buffed.Read(output)
+	output := make([]byte, readBufferSize)
+	_, err = rBuffed.Read(output)
 	if err != nil {
 		return err
 	}
 
 	// getting correct answer
-	answer_filename := root_answ + strings.TrimPrefix(path, root_cases)
-	file_answ, err := os.OpenFile(answer_filename, os.O_RDONLY, 0666)
+	answerFilename := rootAnswers + strings.TrimPrefix(path, rootCases)
+	answerFile, err := os.OpenFile(answerFilename, os.O_RDONLY, 0666)
 	if err != nil {
-		fmt.Println("[TEST FAIL]\t Problem with test answer file " + answer_filename)
+		fmt.Println("[TEST FAIL]\t Problem with test answer file " + answerFilename)
 		fmt.Println("[         ]\t", err)
 		// continue executing walkFunk
 		return nil
 	}
 	defer file.Close()
 
-	answer := make([]byte, read_buffer_size)
-	_, err = file_answ.Read(answer)
+	answer := make([]byte, readBufferSize)
+	_, err = answerFile.Read(answer)
 	if err != nil {
 		return err
 	}
 
 	// comparing
-	output_str := strings.FieldsFunc(string(output), empty_syms_splitter)
-	answer_str := strings.FieldsFunc(string(answer), empty_syms_splitter)
+	outputStr := strings.FieldsFunc(string(output), emptySymsSplitter)
+	answerStr := strings.FieldsFunc(string(answer), emptySymsSplitter)
 
-	if !string_slice_eq(output_str, answer_str) {
+	if !stringSliceEQ(outputStr, answerStr) {
 		return errors.New(
 			fmt.Sprintf(
 				"\"Uniq\" output is not equal to the correct one\n"+
@@ -129,7 +129,7 @@ func walking_test(path string, info os.FileInfo, err error) error {
 
 // tests
 func TestUniq(t *testing.T) {
-	if err := filepath.Walk(root_cases, walking_test); err != nil {
+	if err := filepath.Walk(rootCases, walkingTest); err != nil {
 		if strings.Contains(err.Error(), "test") {
 			t.Fail()
 		} else {

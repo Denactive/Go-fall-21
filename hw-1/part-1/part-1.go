@@ -8,33 +8,34 @@ import (
 )
 
 // bool to int convertation
-var conv_b2i = map[bool]int{false: 0, true: 1}
+var boolToInt = map[bool]int{false: 0, true: 1}
 
 func main() {
 	// Flag proccessing
-	c_flg := flag.Bool("c", false, "\tprefix lines by the number of occurrences")
-	d_flg := flag.Bool("d", false, "\tonly print duplicate lines, one for each group")
-	u_flg := flag.Bool("u", false, "\tonly print unique lines")
-	i_flg := flag.Bool("i", false, "\tignore differences in case when comparing")
-	f_flg := flag.Int("f", 0, "\tavoid comparing the first N fields")
-	s_flg := flag.Int("s", 0, "\tavoid comparing the first N characters")
+	cFlag := flag.Bool("c", false, "\tprefix lines by the number of occurrences")
+	dFlag := flag.Bool("d", false, "\tonly print duplicate lines, one for each group")
+	uFlag := flag.Bool("u", false, "\tonly print unique lines")
+	iFlag := flag.Bool("i", false, "\tignore differences in case when comparing")
+	fFlag := flag.Int("f", 0, "\tavoid comparing the first N fields")
+	sFlag := flag.Int("s", 0, "\tavoid comparing the first N characters")
 	flag.Parse()
 
 	// safety
-	if *f_flg < 0 {
-		*f_flg = 0
+	// f & s flags are not negative
+	if *fFlag < 0 {
+		*fFlag = 0
 	}
-	if *s_flg < 0 {
-		*s_flg = 0
+	if *sFlag < 0 {
+		*sFlag = 0
 	}
 
 	flags := map[string]int{
-		"c": conv_b2i[*c_flg],
-		"d": conv_b2i[*d_flg],
-		"u": conv_b2i[*u_flg],
-		"i": conv_b2i[*i_flg],
-		"f": *f_flg,
-		"s": *s_flg,
+		"c": boolToInt[*cFlag],
+		"d": boolToInt[*dFlag],
+		"u": boolToInt[*uFlag],
+		"i": boolToInt[*iFlag],
+		"f": *fFlag,
+		"s": *sFlag,
 	}
 
 	// Input/ Output files Arguments proccessing
@@ -42,23 +43,25 @@ func main() {
 	destination := os.Stdout
 	var err error
 
-	source_file := flag.Arg(0)
-	destination_file := flag.Arg(1)
-	fmt.Println("params: ", source_file, destination_file, flags)
+	sourceFile := flag.Arg(0)
+	destinationFile := flag.Arg(1)
+	fmt.Println("params: ", sourceFile, destinationFile, flags)
 
-	if source_file != "" {
-		source, err = os.Open(source_file)
+	if sourceFile != "" {
+		source, err = os.Open(sourceFile)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			return
 		}
 		defer source.Close()
 	}
 
-	if destination_file != "" {
+	if destinationFile != "" {
 		// cross-platform file openning
-		destination, err = os.OpenFile(destination_file, os.O_WRONLY|os.O_CREATE, 666)
+		destination, err = os.OpenFile(destinationFile, os.O_WRONLY|os.O_CREATE, 666)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			return
 		}
 		defer destination.Close()
 	}
