@@ -7,37 +7,24 @@ import (
 	"time"
 )
 
-const pipeline_DEBUG = false
-const single_hash_DEBUG = false
-const multi_hash_DEBUG = false
-const combine_results_DEBUG = false
-
-const single_hash_delay = 20 * time.Millisecond
+const singleHashDelay = 20 * time.Millisecond
 
 func ExecutePipeline(jobs ...job) {
 	wg := new(sync.WaitGroup)
-	var prev_chan chan interface{} = nil
+	var prevChan chan interface{} = nil
 
-	for i, job_i := range jobs {
-		cur_chan := make(chan interface{}, 1)
+	for i, task := range jobs {
+		curChan := make(chan interface{}, 1)
 
 		wg.Add(1)
-		go func(wg *sync.WaitGroup, job_i job, i int, in, out chan interface{}) {
+		go func(wg *sync.WaitGroup, task job, i int, in, out chan interface{}) {
 			defer wg.Done()
 
-			if pipeline_DEBUG {
-				fmt.Println("#", i, job_i, "started. input", in, ", output", out)
-			}
-
-			job_i(in, out)
+			task(in, out)
 			close(out)
+		}(wg, task, i, prevChan, curChan)
 
-			if pipeline_DEBUG {
-				fmt.Println("#", i, job_i, "finished. Channel", out, "closed")
-			}
-		}(wg, job_i, i, prev_chan, cur_chan)
-
-		prev_chan = cur_chan
+		prevChan = curChan
 	}
 	wg.Wait()
 }
@@ -51,59 +38,42 @@ func SingleHash(in, out chan interface{}) {
 		go func(wg *sync.WaitGroup, i int, data string) {
 			defer wg.Done()
 
-			if single_hash_DEBUG {
-				fmt.Println("#", i, "SingleHash data", data)
-			}
-
 			var md5 string = DataSignerMd5(data)
-
-			if single_hash_DEBUG {
-				fmt.Println("#", i, "SingleHash md5(data)", md5)
-			}
 
 			// wait subgroup
 			wsg := new(sync.WaitGroup)
 			wsg.Add(2)
-			crc32_data_ch := make(chan string, MaxInputDataLen)
-			crc32_md5_ch := make(chan string, MaxInputDataLen)
+			crc32DataChannel := make(chan string, MaxInputDataLen)
+			crc32Md5Channel := make(chan string, MaxInputDataLen)
 
 			go func(wsg *sync.WaitGroup, i int, out chan<- string, data string) {
 				defer wsg.Done()
+
 				var crc32 string = DataSignerCrc32(data)
-				if single_hash_DEBUG {
-					fmt.Println("#", i, "SingleHash crc32(data)", crc32)
-				}
+
 				out <- crc32
 				close(out)
-			}(wsg, i, crc32_data_ch, data)
+			}(wsg, i, crc32DataChannel, data)
 
 			go func(wsg *sync.WaitGroup, i int, out chan<- string, md5 string) {
 				defer wsg.Done()
-				var crc32_md5 string = DataSignerCrc32(md5)
-				if single_hash_DEBUG {
-					fmt.Println("#", i, "SingleHash crc32(md5(data))", crc32_md5)
-				}
-				out <- crc32_md5
+
+				var crc32Md5 string = DataSignerCrc32(md5)
+
+				out <- crc32Md5
 				close(out)
-			}(wsg, i, crc32_md5_ch, md5)
+			}(wsg, i, crc32Md5Channel, md5)
 
 			wsg.Wait()
-
-			var res string = <-crc32_data_ch + "~" + <-crc32_md5_ch
-
-			if single_hash_DEBUG {
-				fmt.Println("#", i, "SingleHash result", res)
-			}
-
-			out <- res
+			out <- (<-crc32DataChannel + "~" + <-crc32Md5Channel)
 		}(wg, i, fmt.Sprint(input.(int)))
 		i++
-		time.Sleep(single_hash_delay)
+		time.Sleep(singleHashDelay)
 	}
 	wg.Wait()
 }
 
-const multi_hash_num = 6
+const mhCalculationsNum = 6
 
 func MultiHash(in, out chan interface{}) {
 	wg := new(sync.WaitGroup)
@@ -118,10 +88,10 @@ func MultiHash(in, out chan interface{}) {
 
 			wsg := new(sync.WaitGroup)
 			mu := new(sync.Mutex)
-			res := make(map[int]string, multi_hash_num)
+			res := make(map[int]string, mhCalculationsNum)
 
 			// MultiHash 1/6 subworker
-			for i := 0; i < multi_hash_num; i++ {
+			for i := 0; i < mhCalculationsNum; i++ {
 				wsg.Add(1)
 				go func(wg *sync.WaitGroup, i int) {
 					defer wg.Done()
@@ -136,17 +106,11 @@ func MultiHash(in, out chan interface{}) {
 			wsg.Wait()
 
 			// send results
-			var res_string string
-			for i := 0; i < multi_hash_num; i++ {
-				if multi_hash_DEBUG {
-					fmt.Println("#", i, input, "MultiHash: crc32(th+SingleHash))", i, res[i])
-				}
-				res_string += res[i]
+			var resString string
+			for i := 0; i < mhCalculationsNum; i++ {
+				resString += res[i]
 			}
-			if multi_hash_DEBUG {
-				fmt.Println(input, "MultiHash result:", res_string)
-			}
-			out <- res_string
+			out <- resString
 		}(wg, i, fmt.Sprint(input.(string)), out)
 
 		i++
@@ -158,15 +122,10 @@ func CombineResults(in, out chan interface{}) {
 	data := make([]string, 0)
 
 	for input := range in {
-		if combine_results_DEBUG {
-			fmt.Println("\tCombineResults got", input)
-		}
 		data = append(data, input.(string))
 	}
 	sort.Strings(data)
-	if combine_results_DEBUG {
-		fmt.Println("\tsorted:", data)
-	}
+
 	var res string = data[0]
 	for i := 1; i < len(data); i++ {
 		res += ("_" + data[i])
