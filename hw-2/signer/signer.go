@@ -4,10 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
-	"time"
 )
-
-const singleHashDelay = 20 * time.Millisecond
 
 func ExecutePipeline(jobs ...job) {
 	wg := new(sync.WaitGroup)
@@ -19,9 +16,9 @@ func ExecutePipeline(jobs ...job) {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, task job, i int, in, out chan interface{}) {
 			defer wg.Done()
+			defer close(out)
 
 			task(in, out)
-			close(out)
 		}(wg, task, i, prevChan, curChan)
 
 		prevChan = curChan
@@ -31,6 +28,7 @@ func ExecutePipeline(jobs ...job) {
 
 func SingleHash(in, out chan interface{}) {
 	wg := new(sync.WaitGroup)
+	mu := new(sync.Mutex)
 	i := 0
 
 	for input := range in {
@@ -38,7 +36,9 @@ func SingleHash(in, out chan interface{}) {
 		go func(wg *sync.WaitGroup, i int, data string) {
 			defer wg.Done()
 
+			mu.Lock()
 			var md5 string = DataSignerMd5(data)
+			mu.Unlock()
 
 			// wait subgroup
 			wsg := new(sync.WaitGroup)
@@ -48,27 +48,22 @@ func SingleHash(in, out chan interface{}) {
 
 			go func(wsg *sync.WaitGroup, i int, out chan<- string, data string) {
 				defer wsg.Done()
+				defer close(out)
 
-				var crc32 string = DataSignerCrc32(data)
-
-				out <- crc32
-				close(out)
+				out <- DataSignerCrc32(data)
 			}(wsg, i, crc32DataChannel, data)
 
 			go func(wsg *sync.WaitGroup, i int, out chan<- string, md5 string) {
 				defer wsg.Done()
+				defer close(out)
 
-				var crc32Md5 string = DataSignerCrc32(md5)
-
-				out <- crc32Md5
-				close(out)
+				out <- DataSignerCrc32(md5)
 			}(wsg, i, crc32Md5Channel, md5)
 
 			wsg.Wait()
 			out <- (<-crc32DataChannel + "~" + <-crc32Md5Channel)
 		}(wg, i, fmt.Sprint(input.(int)))
 		i++
-		time.Sleep(singleHashDelay)
 	}
 	wg.Wait()
 }
