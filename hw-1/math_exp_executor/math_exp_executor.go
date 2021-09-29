@@ -15,8 +15,7 @@ type Result struct {
 func PrepareExp(input string) (string, error) {
 	// unknown - a list of unsuported symbols. Will be seen in the error
 	var unknown string
-	var err error
-	var trimmed []rune = []rune(strings.Join(strings.Fields(input), ""))
+	trimmed := []rune(strings.Join(strings.Fields(input), ""))
 
 	for _, sym := range trimmed {
 		if !unicode.IsDigit(sym) && !strings.ContainsRune("()+-*/.", sym) {
@@ -26,20 +25,17 @@ func PrepareExp(input string) (string, error) {
 		}
 	}
 	if unknown != "" {
-		err = errors.New("Unknown characters: " + unknown)
-		return "", err
+		return "", errors.New("Unknown characters: " + unknown)
 	}
-	return string(trimmed), err
+	return string(trimmed), nil
 }
 
 // recursive trigger algorithm implementation
 func ExecMathExp(exp string) (float64, error) {
-	var res Result
-	var err error
 	if exp == "" {
 		return 0, errors.New("Empty expression")
 	}
-	res, err = addSubHandler(exp)
+	res, err := addSubHandler(exp)
 
 	if err != nil {
 		return res.accumulator, err
@@ -53,15 +49,11 @@ func ExecMathExp(exp string) (float64, error) {
 
 // priority 1
 func addSubHandler(exp string) (Result, error) {
-	var leftOperand Result
-	var err error
-	var accumulatorBuffer float64
-
-	leftOperand, err = mulDivHandler(exp)
+	leftOperand, err := mulDivHandler(exp)
 	if err != nil {
 		return leftOperand, err
 	}
-	accumulatorBuffer = leftOperand.accumulator
+	accumulatorBuffer := leftOperand.accumulator
 
 	for {
 		if leftOperand.rest == "" {
@@ -90,15 +82,11 @@ func addSubHandler(exp string) (Result, error) {
 
 // priority 2
 func mulDivHandler(exp string) (Result, error) {
-	var leftOperand Result
-	var err error
-	var accumulatorBuffer float64
-
-	leftOperand, err = bracketHandler(exp)
+	leftOperand, err := bracketHandler(exp)
 	if err != nil {
 		return leftOperand, err
 	}
-	accumulatorBuffer = leftOperand.accumulator
+	accumulatorBuffer := leftOperand.accumulator
 
 	// iterations on constructions like n*n*n\n...
 	for {
@@ -107,8 +95,7 @@ func mulDivHandler(exp string) (Result, error) {
 			return leftOperand, nil
 		}
 
-		var sign string
-		sign = string(leftOperand.rest[0])
+		sign := string(leftOperand.rest[0])
 		// if all '*', '\' signed are passed -> need to perform, other -> return
 		if !strings.ContainsAny("/*", sign) {
 			return leftOperand, nil
@@ -116,8 +103,7 @@ func mulDivHandler(exp string) (Result, error) {
 
 		// get second number
 		// bracket expression has more priority
-		var rightOperand Result
-		rightOperand, err = bracketHandler(leftOperand.rest[1:])
+		rightOperand, err := bracketHandler(leftOperand.rest[1:])
 		if err != nil {
 			return rightOperand, err
 		}
@@ -139,18 +125,15 @@ func mulDivHandler(exp string) (Result, error) {
 func bracketHandler(exp string) (Result, error) {
 	if exp != "" && exp[0] == '(' {
 		// priority reset
-		var res Result
-		var err error
-		res, err = addSubHandler(string(exp[1:]))
+		res, err := addSubHandler(string(exp[1:]))
 		if err != nil {
 			return res, err
 		}
 		if res.rest != "" && res.rest[0] == ')' {
 			res.rest = string(res.rest[1:])
-			return res, err
+			return res, nil
 		}
-		err = errors.New("no close bracket")
-		return res, err
+		return res, errors.New("no close bracket")
 	}
 	// if it is not a bracket construction then it is a number
 	return numHandler(exp)
@@ -159,7 +142,7 @@ func bracketHandler(exp string) (Result, error) {
 // none priority
 func numHandler(exp string) (Result, error) {
 	var i int
-	var expRunes []rune = []rune(exp)
+	expRunes := []rune(exp)
 
 	// search for not n=[0-9] and '.'
 	// case nnnn.nnnn.nn is invalid and ParseFloat will return error
@@ -176,9 +159,6 @@ func numHandler(exp string) (Result, error) {
 		}
 	}
 
-	var num float64
-	var err error
-	num, err = strconv.ParseFloat(string(expRunes[:i]), 64)
-
+	num, err := strconv.ParseFloat(string(expRunes[:i]), 64)
 	return Result{num, string(expRunes[i:])}, err
 }

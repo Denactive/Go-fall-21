@@ -14,7 +14,7 @@ type TestCase struct {
 	output string
 }
 
-var execMathExpTestingTable []TestCase = []TestCase{
+var execMathExpTestingTable = []TestCase{
 	TestCase{"simple plus int", "10+12", "22"},
 	TestCase{"simple minus int", "10-12", "-2"},
 	TestCase{"simple multiplication int", "10*12", "120"},
