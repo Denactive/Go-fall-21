@@ -8,7 +8,7 @@ import (
 
 func ExecutePipeline(jobs ...job) {
 	wg := new(sync.WaitGroup)
-	var prevChan chan interface{} = nil
+	var prevChan chan interface{}
 
 	for i, task := range jobs {
 		curChan := make(chan interface{}, 1)
@@ -37,7 +37,7 @@ func SingleHash(in, out chan interface{}) {
 			defer wg.Done()
 
 			mu.Lock()
-			var md5 string = DataSignerMd5(data)
+			md5 := DataSignerMd5(data)
 			mu.Unlock()
 
 			// wait subgroup
@@ -82,8 +82,7 @@ func MultiHash(in, out chan interface{}) {
 			defer wg.Done()
 
 			wsg := new(sync.WaitGroup)
-			mu := new(sync.Mutex)
-			res := make(map[int]string, mhCalculationsNum)
+			var res sync.Map
 
 			// MultiHash 1/6 subworker
 			for i := 0; i < mhCalculationsNum; i++ {
@@ -91,11 +90,9 @@ func MultiHash(in, out chan interface{}) {
 				go func(wg *sync.WaitGroup, i int) {
 					defer wg.Done()
 
-					var crc32 string = DataSignerCrc32(fmt.Sprint(i) + data)
+					crc32 := DataSignerCrc32(fmt.Sprint(i) + data)
 
-					mu.Lock()
-					res[i] = crc32
-					mu.Unlock()
+					res.Store(i, crc32)
 				}(wsg, i)
 			}
 			wsg.Wait()
@@ -103,7 +100,8 @@ func MultiHash(in, out chan interface{}) {
 			// send results
 			var resString string
 			for i := 0; i < mhCalculationsNum; i++ {
-				resString += res[i]
+				v, _ := res.Load(i)
+				resString += v.(string)
 			}
 			out <- resString
 		}(wg, i, fmt.Sprint(input.(string)), out)
@@ -121,7 +119,7 @@ func CombineResults(in, out chan interface{}) {
 	}
 	sort.Strings(data)
 
-	var res string = data[0]
+	res := data[0]
 	for i := 1; i < len(data); i++ {
 		res += ("_" + data[i])
 	}
