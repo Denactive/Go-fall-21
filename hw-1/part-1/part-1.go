@@ -10,8 +10,7 @@ import (
 // bool to int convertation
 var boolToInt = map[bool]int{false: 0, true: 1}
 
-func main() {
-	// Flag proccessing
+func proccessFlags() map[string]int {
 	cFlag := flag.Bool("c", false, "\tprefix lines by the number of occurrences")
 	dFlag := flag.Bool("d", false, "\tonly print duplicate lines, one for each group")
 	uFlag := flag.Bool("u", false, "\tonly print unique lines")
@@ -29,7 +28,7 @@ func main() {
 		*sFlag = 0
 	}
 
-	flags := map[string]int{
+	return map[string]int{
 		"c": boolToInt[*cFlag],
 		"d": boolToInt[*dFlag],
 		"u": boolToInt[*uFlag],
@@ -37,7 +36,10 @@ func main() {
 		"f": *fFlag,
 		"s": *sFlag,
 	}
+}
 
+func main() {
+	flags := proccessFlags()
 	// Input/ Output files Arguments proccessing
 	source := os.Stdin
 	destination := os.Stdout
@@ -45,7 +47,6 @@ func main() {
 
 	sourceFile := flag.Arg(0)
 	destinationFile := flag.Arg(1)
-	fmt.Println("params: ", sourceFile, destinationFile, flags)
 
 	if sourceFile != "" {
 		source, err = os.Open(sourceFile)
